@@ -1,10 +1,8 @@
+// api/db.js
 require('dotenv').config();
-const { createClient } = require('@vercel/kv');
+const Redis = require('ioredis');
 
-// We use the standard KV client which works with both REST and local modes
-const kv = createClient({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN,
-});
+// Connect using the REDIS_URL you confirmed you have
+const redis = new Redis(process.env.REDIS_URL);
 
-module.exports = kv;
+module.exports = redis;
