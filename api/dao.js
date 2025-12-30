@@ -1,4 +1,3 @@
-// api/dao.js
 const redis = require('./db');
 const { v4: uuidv4 } = require('uuid');
 
@@ -21,13 +20,13 @@ async function createPaste(content, ttl_seconds, max_views, req) {
     expires_at_ms: ttl_seconds ? now + (ttl_seconds * 1000) : null
   };
 
-  // CHANGE: We must stringify the JSON before saving to Redis
+  // CHANGE: stringify the JSON before saving to Redis
   await redis.set(`paste:${id}`, JSON.stringify(pasteData));
   return id;
 }
 
 async function getPaste(id, req) {
-  // CHANGE: We get a string back, so we must parse it
+  // CHANGE: getting string back, so we must parse it
   const dataString = await redis.get(`paste:${id}`);
   if (!dataString) return null;
 
