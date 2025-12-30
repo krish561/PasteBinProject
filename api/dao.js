@@ -1,4 +1,5 @@
-const kv = require('./db');
+// api/dao.js
+const redis = require('./db');
 const { v4: uuidv4 } = require('uuid');
 
 function getCurrentTime(req) {
@@ -20,20 +21,30 @@ async function createPaste(content, ttl_seconds, max_views, req) {
     expires_at_ms: ttl_seconds ? now + (ttl_seconds * 1000) : null
   };
 
-  await kv.set(`paste:${id}`, pasteData);
+  // CHANGE: We must stringify the JSON before saving to Redis
+  await redis.set(`paste:${id}`, JSON.stringify(pasteData));
   return id;
 }
 
 async function getPaste(id, req) {
-  const paste = await kv.get(`paste:${id}`);
-  if (!paste) return null;
+  // CHANGE: We get a string back, so we must parse it
+  const dataString = await redis.get(`paste:${id}`);
+  if (!dataString) return null;
 
+  const paste = JSON.parse(dataString);
   const now = getCurrentTime(req);
+
+  // Check 1: Time Expiry
   if (paste.expires_at_ms && now > paste.expires_at_ms) return null;
+
+  // Check 2: View Limit
   if (paste.max_views !== null && paste.views_used >= paste.max_views) return null;
 
+  // Increment views and save back
   paste.views_used += 1;
-  await kv.set(`paste:${id}`, paste);
+  
+  // CHANGE: Stringify again to save updates
+  await redis.set(`paste:${id}`, JSON.stringify(paste));
 
   return paste;
 }
