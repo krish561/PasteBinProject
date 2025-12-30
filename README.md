@@ -1,109 +1,60 @@
-# PasteBin Project 📝
+# PasteBin Project
 
-A simple pastebin service to share text snippets temporarily. Create a paste, get a unique URL, and share it with others. Done.
+A simple pastebin service for sharing text snippets temporarily with optional expiry and view limits.
 
-## What It Does
-
-- **Create pastes** - Post some text and get a shareable link
-- **Set expiry** - Pastes can expire after a set time (in seconds)
-- **Limit views** - Pastes can automatically delete after being viewed X times
-- **Simple UI** - A basic web form to create and view pastes
-
-## Tech Stack
-
-- **Express.js** - Web server
-- **Redis** - Data storage (using ioredis)
-- **Node.js** - Runtime
-- **Vercel** - Hosting/deployment
-
-## Quick Start
+## Running Locally
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- Redis instance (we're using Redis Labs)
+- Node.js v18+
+- A Redis instance (you can use Redis Labs or a local Redis server)
 
-### Installation
+### Setup
 
-```bash
-npm install
-```
+1. Install dependencies:
 
-### Environment Setup
+   ```bash
+   npm install
+   ```
 
-Create a `.env` file with your Redis connection:
+2. Create a `.env` file in the root directory:
 
-```
-REDIS_URL="redis://user:password@host:port"
-TEST_MODE=0
-```
+   ```
+   REDIS_URL="redis://user:password@host:port"
+   TEST_MODE=0
+   ```
 
-### Running Locally
+3. Start the server:
+   ```bash
+   node api/index.js
+   ```
 
-```bash
-node api/index.js
-```
+The app will run on `http://localhost:3000`
 
-Server will run on `http://localhost:3000`
+## Persistence Layer
 
-## API Endpoints
+**Redis** is used for all data storage via the `ioredis` client.
 
-### Create a Paste
+Each paste is stored as a JSON object with the key format `paste:{id}`:
 
-```
-POST /api/pastes
-```
+- `content` - The text content
+- `created_at` - Timestamp when created
+- `expires_at_ms` - When the paste expires (if TTL was set)
+- `max_views` - Maximum allowed views (if set)
+- `views_used` - Current view count
 
-Body:
+The data is stored as stringified JSON in Redis and parsed on retrieval. No expiry is set on the Redis key itself—expiration is checked at read time (TTL-based and view-limit-based).
 
-```json
-{
-  "content": "Your text here",
-  "ttl_seconds": 3600,
-  "max_views": 5
-}
-```
+## Design Decisions
 
-Response:
+1. **UUID for Paste IDs** - Each paste gets a random UUID rather than sequential IDs, making it harder to guess valid paste URLs.
 
-```json
-{
-  "id": "uuid-here",
-  "url": "https://yoursite.com/p/uuid-here"
-}
-```
+2. **Server-Side Expiry Checks** - Instead of relying on Redis TTL, expiry is checked when the paste is retrieved. This allows supporting both time-based TTL and view-count limits with a single approach.
 
-### View a Paste
+3. **Simple HTML Rendering** - Pastes are returned as HTML pages with escaped content for security, not as JSON APIs. Makes sharing and viewing simple.
 
-```
-GET /p/:id
-```
+4. **No Database** - Redis is ideal here—fast key-value access without the overhead of a database. Perfect for temporary, short-lived data.
 
-Returns an HTML page with the paste content displayed.
+5. **Test Mode Support** - The `TEST_MODE` environment variable and `x-test-now-ms` header allow overriding the current time for testing expiry logic.
 
-### Health Check
-
-```
-GET /api/healthz
-```
-
-## Features
-
-- ✅ UUID-based paste IDs
-- ✅ TTL support (pastes expire automatically)
-- ✅ View limit support (pastes delete after N views)
-- ✅ HTML rendering for easy viewing
-- ✅ Simple web interface
-- ✅ CORS enabled
-- ✅ Test mode for time manipulation
-
-## Deployment
-
-This project is configured for Vercel. Just push to your repo and it'll deploy automatically. The `vercel.json` handles routing.
-
-## Notes
-
-- Pastes are stored in Redis, not a database
-- No authentication - this is meant for temporary sharing
-- Content is HTML-escaped for safety
-- Test mode allows overriding timestamps (header: `x-test-now-ms`)
+6. **Stateless Design** - The server can be scaled horizontally since all state is in Redis. Useful for serverless deployments (Vercel).
