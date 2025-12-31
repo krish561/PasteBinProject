@@ -76,26 +76,21 @@ Expiration is enforced in two ways:
 
     Redis key TTL as a safety mechanism to ensure eventual cleanup
 
-""Design Decisions""
-    ***UUID-based IDs***
-    Random UUIDs are used instead of sequential IDs to prevent easy guessing
+Design Decisions
+
+    UUID-based IDs - Random UUIDs are used instead of sequential IDs to prevent easy guessing
     of valid paste URLs.
 
-    Atomic View Decrementing
-    View limits are enforced atomically in Redis to prevent race conditions
+    Atomic View Decrementing - View limits are enforced atomically in Redis to prevent race conditions
     under concurrent access.
 
-    Server-Side Expiry Logic
-    Expiry is checked when pastes are accessed, allowing consistent enforcement
+    Server-Side Expiry Logic - Expiry is checked when pastes are accessed, allowing consistent enforcement
     of both time-based and view-based limits.
 
-    Safe HTML Rendering
-    Paste content is escaped before rendering to prevent XSS attacks.
+    Safe HTML Rendering - Paste content is escaped before rendering to prevent XSS attacks.
 
-    Test Mode Support
-    When TEST_MODE=1, the x-test-now-ms header can be used to override the
+    Test Mode Support - When TEST_MODE=1, the x-test-now-ms header can be used to override the
     current time, enabling deterministic testing of TTL behavior.
 
-    Stateless Architecture
-    All state is stored in Redis, allowing the application to scale horizontally
+    Stateless Architecture - All state is stored in Redis, allowing the application to scale horizontally
     and run reliably in a serverless environment (Vercel).
