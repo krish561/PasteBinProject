@@ -8,7 +8,7 @@ making it suitable for serverless deployment.
 
 ## Deployed URL
 
-https://paste-bin-project-pshnbtvj8-krish561s-projects.vercel.app
+https://paste-bin-project-ajdjlarc2-krish561s-projects.vercel.app/
 
 ## Running Locally
 
