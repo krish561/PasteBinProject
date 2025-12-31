@@ -23,15 +23,20 @@ https://paste-bin-project-pshnbtvj8-krish561s-projects.vercel.app
 
    ```bash
    npm install
+   ```
 
 2. Create a .env file in the root directory:
 
+```env
 REDIS_URL=redis://user:password@host:port
 TEST_MODE=0
+```
 
 3. Start the server:
 
-    node index.js
+```bash
+node index.js
+```
 
 The app will run on http://localhost:3000.
 API Overview
@@ -71,9 +76,8 @@ Expiration is enforced in two ways:
 
     Redis key TTL as a safety mechanism to ensure eventual cleanup
 
-Design Decisions
-
-    UUID-based IDs
+""Design Decisions""
+    ***UUID-based IDs***
     Random UUIDs are used instead of sequential IDs to prevent easy guessing
     of valid paste URLs.
 
