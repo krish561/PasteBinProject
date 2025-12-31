@@ -1,13 +1,21 @@
 # PasteBin Project
 
-A simple pastebin service for sharing text snippets temporarily with optional expiry and view limits.
+A simple Pastebin-like service for sharing text snippets temporarily, with optional
+time-based expiration (TTL) and view limits.
+
+The application is designed to be stateless and is backed by Redis for persistence,
+making it suitable for serverless deployment.
+
+## Deployed URL
+
+https://paste-bin-project-pshnbtvj8-krish561s-projects.vercel.app
 
 ## Running Locally
 
 ### Prerequisites
 
 - Node.js v18+
-- A Redis instance (you can use Redis Labs or a local Redis server)
+- A Redis instance (local or hosted, e.g. Upstash)
 
 ### Setup
 
@@ -15,46 +23,75 @@ A simple pastebin service for sharing text snippets temporarily with optional ex
 
    ```bash
    npm install
-   ```
 
-2. Create a `.env` file in the root directory:
+2. Create a .env file in the root directory:
 
-   ```
-   REDIS_URL="redis://user:password@host:port"
-   TEST_MODE=0
-   ```
+REDIS_URL=redis://user:password@host:port
+TEST_MODE=0
 
 3. Start the server:
-   ```bash
-   node api/index.js
-   ```
 
-The app will run on `http://localhost:3000`
+    node index.js
 
-## Persistence Layer
+The app will run on http://localhost:3000.
+API Overview
 
-**Redis** is used for all data storage via the `ioredis` client.
+    POST /api/pastes
+    Create a new paste with optional ttl_seconds and max_views.
 
-Each paste is stored as a JSON object with the key format `paste:{id}`:
+    GET /api/pastes/:id
+    Fetch a paste as JSON. Each successful fetch counts as a view and decrements
+    the remaining view count.
 
-- `content` - The text content
-- `created_at` - Timestamp when created
-- `expires_at_ms` - When the paste expires (if TTL was set)
-- `max_views` - Maximum allowed views (if set)
-- `views_used` - Current view count
+    GET /p/:id
+    Render the paste as an HTML page with escaped content for safe viewing.
 
-The data is stored as stringified JSON in Redis and parsed on retrieval. No expiry is set on the Redis key itself—expiration is checked at read time (TTL-based and view-limit-based).
+    GET /api/healthz
+    Health check endpoint to verify server and Redis connectivity.
 
-## Design Decisions
+Persistence Layer
 
-1. **UUID for Paste IDs** - Each paste gets a random UUID rather than sequential IDs, making it harder to guess valid paste URLs.
+Redis is used as the persistence layer via the ioredis client.
 
-2. **Server-Side Expiry Checks** - Instead of relying on Redis TTL, expiry is checked when the paste is retrieved. This allows supporting both time-based TTL and view-count limits with a single approach.
+Each paste is stored as a JSON object using the key format paste:{id} with fields:
 
-3. **Simple HTML Rendering** - Pastes are returned as HTML pages with escaped content for security, not as JSON APIs. Makes sharing and viewing simple.
+    id – UUID identifier
 
-4. **No Database** - Redis is ideal here—fast key-value access without the overhead of a database. Perfect for temporary, short-lived data.
+    content – Text content of the paste
 
-5. **Test Mode Support** - The `TEST_MODE` environment variable and `x-test-now-ms` header allow overriding the current time for testing expiry logic.
+    created_at – Creation timestamp (ms)
 
-6. **Stateless Design** - The server can be scaled horizontally since all state is in Redis. Useful for serverless deployments (Vercel).
+    expires_at – Expiration timestamp (ms), if TTL is set
+
+    remaining_views – Remaining allowed views, if a view limit is set
+
+Expiration is enforced in two ways:
+
+    Logical checks at read time (TTL and view limits)
+
+    Redis key TTL as a safety mechanism to ensure eventual cleanup
+
+Design Decisions
+
+    UUID-based IDs
+    Random UUIDs are used instead of sequential IDs to prevent easy guessing
+    of valid paste URLs.
+
+    Atomic View Decrementing
+    View limits are enforced atomically in Redis to prevent race conditions
+    under concurrent access.
+
+    Server-Side Expiry Logic
+    Expiry is checked when pastes are accessed, allowing consistent enforcement
+    of both time-based and view-based limits.
+
+    Safe HTML Rendering
+    Paste content is escaped before rendering to prevent XSS attacks.
+
+    Test Mode Support
+    When TEST_MODE=1, the x-test-now-ms header can be used to override the
+    current time, enabling deterministic testing of TTL behavior.
+
+    Stateless Architecture
+    All state is stored in Redis, allowing the application to scale horizontally
+    and run reliably in a serverless environment (Vercel).
